@@ -1,4 +1,4 @@
-package com.alura.literatura.model;
+package com.alura.literalura.model;
 
 import jakarta.persistence.*;
 
@@ -9,11 +9,8 @@ public class Libro {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(unique = true) // No queremos libros con el mismo título
+    @Column(unique = true)
     private String titulo;
-
-    // Muchos libros pueden pertenecer a un autor.
-    // Esta es la columna en la BD que tendrá la llave foránea al autor.
     @ManyToOne
     private Autor autor;
 
@@ -22,7 +19,24 @@ public class Libro {
 
     public Libro() {}
 
-    // Getters, Setters y toString() ...
+    public Libro(Long id, String titulo, Autor autor, String idioma, Integer descargas) {
+        this.id = id;
+        this.titulo = titulo;
+        this.autor = autor;
+        this.idioma = idioma;
+        this.descargas = descargas;
+    }
+
+    @Override
+    public String toString() {
+        return "Libro{" +
+                "id=" + id +
+                ", titulo='" + titulo + '\'' +
+                ", autor=" + autor +
+                ", idioma='" + idioma + '\'' +
+                ", descargas=" + descargas +
+                '}';
+    }
 
     public Long getId() {
         return id;
@@ -64,14 +78,4 @@ public class Libro {
         this.descargas = descargas;
     }
 
-    @Override
-    public String toString() {
-        return "Libro{" +
-                "id=" + id +
-                ", titulo='" + titulo + '\'' +
-                ", autor=" + autor +
-                ", idioma='" + idioma + '\'' +
-                ", descargas=" + descargas +
-                '}';
-    }
 }

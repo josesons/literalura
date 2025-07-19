@@ -9,9 +9,9 @@
 		<relativePath/> <!-- lookup parent from repository -->
 	</parent>
 	<groupId>com.alura</groupId>
-	<artifactId>literatura</artifactId>
+	<artifactId>literalura</artifactId>
 	<version>0.0.1-SNAPSHOT</version>
-	<name>literatura</name>
+	<name>literalura</name>
 	<description>Desafío del catálogo de libros LiterAlura</description>
 	<url/>
 	<licenses>
@@ -48,6 +48,11 @@
 			<groupId>org.springframework.boot</groupId>
 			<artifactId>spring-boot-starter-test</artifactId>
 			<scope>test</scope>
+		</dependency>
+		<dependency>
+			<groupId>com.fasterxml.jackson.core</groupId>
+			<artifactId>jackson-databind</artifactId>
+			<version>2.16.0</version>
 		</dependency>
 	</dependencies>
 

@@ -1,4 +1,4 @@
-package com.alura.literatura.repository;
+package com.alura.literalura.repository;
 
 import com.alura.literalura.model.Autor;
 import org.springframework.data.jpa.repository.JpaRepository;
