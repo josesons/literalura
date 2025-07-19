@@ -102,47 +102,111 @@ public class Principal {
                 DatosLibro datosLibro = datosResultados.resultados().get(0); // Tomamos el primer resultado
 
                 // Extraer Autor y Libro de los datos de la API
-                // La API devuelve una lista de autores, nos quedamos con el primero para simplificar
                 Autor autor = null;
-                if (!datosLibro.autor().isEmpty()) {
+                if (datosLibro.autor() != null && !datosLibro.autor().isEmpty()) {
                     DatosAutor datosAutor = datosLibro.autor().get(0);
-                    autor = new Autor(); // Crear objeto Autor
-                    autor.setNombre(datosAutor.nombre());
-                    autor.setAnioNacimiento(datosAutor.anioNacimiento());
-                    // No guardamos el año de fallecimiento si no está presente en el DTO o API
-                    // autor.setAnioFallecimiento(datosAutor.anioFallecimiento());
+                    String nombreAutor = datosAutor.nombre();
+
+                    // --- INICIO DE LA LÓGICA PARA EVITAR DUPLICADOS ---
+                    // Buscamos el autor por nombre en la base de datos
+                    Optional<Autor> autorExistente = autorRepository.findByNombreIgnoreCase(nombreAutor);
+
+                    if (autorExistente.isPresent()) {
+                        // Si el autor ya existe, lo obtenemos de la base de datos
+                        autor = autorExistente.get();
+                        System.out.println("Autor '" + nombreAutor + "' ya existe en la base de datos.");
+                    } else {
+                        // Si el autor no existe, lo creamos
+                        autor = new Autor();
+                        autor.setNombre(nombreAutor);
+                        autor.setAnioNacimiento(datosAutor.anioNacimiento());
+                        // No guardamos el año de fallecimiento si no está disponible o si no lo mapeamos en el DTO.
+                        // autor.setAnioFallecimiento(datosAutor.anioFallecimiento());
+
+                        // Guardamos el nuevo autor en la base de datos
+                        try {
+                            autorRepository.save(autor);
+                            System.out.println("Autor '" + nombreAutor + "' guardado correctamente.");
+                        } catch (Exception e) {
+                            // Manejo de errores al guardar autor (aunque la verificación previa debería evitarlo)
+                            System.out.println("Error al guardar el autor '" + nombreAutor + "': " + e.getMessage());
+                            autor = null; // Aseguramos que autor sea null si falla el guardado
+                        }
+                    }
+                    // --- FIN DE LA LÓGICA PARA EVITAR DUPLICADOS ---
                 }
 
-                Libro libro = new Libro(); // Crear objeto Libro
+                Libro libro = new Libro();
                 libro.setTitulo(datosLibro.titulo());
                 libro.setDescargas(datosLibro.descargas());
 
-                // Guardar idioma (consideramos solo el primero si hay varios)
-                if (!datosLibro.idiomas().isEmpty()) {
-                    libro.setIdioma(datosLibro.idiomas().get(0));
+                List<String> idiomas = datosLibro.idiomas() != null ? datosLibro.idiomas() : Collections.emptyList();
+                if (!idiomas.isEmpty()) {
+                    libro.setIdioma(idiomas.get(0));
+                } else {
+                    libro.setIdioma("No especificado");
                 }
 
-                // Guardar autor y libro en la base de datos
-                // Primero guardamos el autor si existe y no está ya en la BD
+                // Asociamos el autor al libro (solo si el autor se encontró o se guardó correctamente)
                 if (autor != null) {
-                    // Verificamos si el autor ya existe para no duplicarlo
-                    // Esto requiere una consulta personalizada en el AutorRepository o buscarlo antes de guardarlo.
-                    // Por ahora, para simplificar, guardaremos el autor y luego el libro asociándolo.
-                    // Una mejor práctica sería buscar el autor por nombre antes de crearlo/guardarlo.
-                    autorRepository.save(autor); // Guardamos el autor
-                    libro.setAutor(autor); // Asociamos el autor al libro
+                    libro.setAutor(autor);
                 }
 
-                // Guardamos el libro (con el autor asociado si lo hubo)
-                libroRepository.save(libro);
 
-                // Mostrar información del libro encontrado
-                System.out.println("----- LIBRO -----");
-                System.out.println("Título: " + libro.getTitulo());
-                System.out.println("Autor: " + (autor != null ? autor.getNombre() : "Desconocido"));
-                System.out.println("Idioma: " + libro.getIdioma());
-                System.out.println("Número de descargas: " + libro.getDescargas());
-                System.out.println("-----------------");
+//                try {
+//                    libroRepository.save(libro);
+//                    System.out.println("Libro '" + libro.getTitulo() + "' guardado correctamente.");
+//                } catch (Exception e) {
+//                    System.out.println("Error al guardar el libro '" + libro.getTitulo() + "': " + e.getMessage());
+//                 }
+//
+//                System.out.println("----- LIBRO -----");
+//                System.out.println("Título: " + libro.getTitulo());
+//                System.out.println("Autor: " + (autor != null ? autor.getNombre() : "Desconocido"));
+//                System.out.println("Idioma: " + libro.getIdioma());
+//                System.out.println("Número de descargas: " + libro.getDescargas());
+//                System.out.println("-----------------");
+
+                // ... (código anterior para obtener autor y libro) ...
+
+// --- INICIO DE LA LÓGICA PARA EVITAR DUPLICADOS DE LIBROS ---
+// Primero, verificamos si el libro ya existe en la base de datos por su título
+                Optional<Libro> libroExistente = libroRepository.findByTituloIgnoreCase(datosLibro.titulo());
+
+                if (libroExistente.isPresent()) {
+                    // Si el libro ya existe, mostramos un mensaje y no hacemos nada más con este libro
+                    System.out.println("El libro '" + datosLibro.titulo() + "' ya está registrado en la base de datos.");
+                } else {
+                    // Si el libro no existe, procedemos a guardarlo (y su autor si es nuevo)
+
+                    // Guardamos el autor si es nuevo
+                    if (autor != null) {
+                        // Una mejor práctica sería buscar el autor por nombre antes de guardarlo
+                        // Si no existe, lo guardamos. Si existe, usamos la instancia que ya está en la BD.
+                        // Para simplificar ahora, lo guardamos directamente.
+                        autorRepository.save(autor);
+                        libro.setAutor(autor);
+                    }
+
+                    // Guardamos el libro
+                    try {
+                        libroRepository.save(libro);
+                        System.out.println("Libro '" + libro.getTitulo() + "' guardado correctamente.");
+                    } catch (Exception e) {
+                        System.out.println("Error al guardar el libro '" + libro.getTitulo() + "': " + e.getMessage());
+                    }
+                }
+// --- FIN DE LA LÓGICA PARA EVITAR DUPLICADOS DE LIBROS ---
+
+// Mostrar información del libro (si fue procesado)
+                if (libro.getId() != null) { // Solo mostramos si el libro fue guardado o ya existía
+                    System.out.println("----- LIBRO -----");
+                    System.out.println("Título: " + libro.getTitulo());
+                    System.out.println("Autor: " + (autor != null ? autor.getNombre() : "Desconocido"));
+                    System.out.println("Idioma: " + libro.getIdioma());
+                    System.out.println("Número de descargas: " + libro.getDescargas());
+                    System.out.println("-----------------");
+                }
 
             } else {
                 System.out.println("Libro no encontrado.");
@@ -180,9 +244,7 @@ public class Principal {
                 System.out.println("Fecha de nacimiento: " + (autor.getAnioNacimiento() != null ? autor.getAnioNacimiento() : "Desconocida"));
                 // Asumiendo que el autor puede tener libros, listamos los títulos si existen
                 if (autor.getLibros() != null && !autor.getLibros().isEmpty()) {
-                    String librosTitulo = autor.getLibros().stream()
-                            .map(Libro::getTitulo)
-                            .collect(Collectors.joining(", "));
+                    String librosTitulo = autor.getLibros().stream().map(Libro::getTitulo).collect(Collectors.joining(", "));
                     System.out.println("Libros: [" + librosTitulo + "]");
                 } else {
                     System.out.println("Libros: []");
@@ -209,9 +271,7 @@ public class Principal {
                     System.out.println("Fecha de nacimiento: " + (autor.getAnioNacimiento() != null ? autor.getAnioNacimiento() : "Desconocida"));
                     System.out.println("Fecha de fallecimiento: " + (autor.getAnioFallecimiento() != null ? autor.getAnioFallecimiento() : "Aún vivo"));
                     if (autor.getLibros() != null && !autor.getLibros().isEmpty()) {
-                        String librosTitulo = autor.getLibros().stream()
-                                .map(Libro::getTitulo)
-                                .collect(Collectors.joining(", "));
+                        String librosTitulo = autor.getLibros().stream().map(Libro::getTitulo).collect(Collectors.joining(", "));
                         System.out.println("Libros: [" + librosTitulo + "]");
                     } else {
                         System.out.println("Libros: []");
